@@ -1,87 +1,148 @@
-import { useState, useEffect } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-import {Question} from './Question.tsx'
+import { useState, useEffect } from "react";
+// import reactLogo from "./assets/react.svg";
+// import viteLogo from "/vite.svg";
+import "./App.css";
+import { Question } from "./Question.tsx";
 
-const QUESTIONS_ENDPOINT = "http://localhost:8000/questions"
+const QUESTIONS_ENDPOINT = "http://localhost:8000/questions";
+const SUBMIT_ENDPOINT = "http://localhost:8000/responses";
 
 type question = {
-	id: number;
-	question: string;
-	answers: string[];
-}
+    id: number;
+    question: string;
+    answers: string[];
+};
 
 type response = {
-	id: number;
-	answer: string;
-}
+    id: number;
+    answer: string;
+};
 
 function App() {
-	const [questionNum, setQuestionNum] = useState(0)
-	const [questions, setQuestions] = useState([] as question[])
-	const [loading, setLoading] = useState(true)
-	const [error, setError] = useState(null)
-	const [responses, setResponses] = useState([])
+    const [questionNum, setQuestionNum] = useState(0);
+    const [questions, setQuestions] = useState([] as question[]);
+    const [error, setError] = useState(null as Error | null);
+    const [responses, setResponses] = useState([] as response[]);
+    const [status, setStatus] = useState(
+        "loading" as
+            | "loading"
+            | "question"
+            | "submitting"
+            | "submitted"
+            | "error"
+    );
 
-	useEffect(() => {
-		// Define the async function to fetch data
-		const fetchData = async () => {
-			setLoading(true); // Start loading
-			setError(null); // Clear previous errors
-			
-			try {
-				const response = await fetch(QUESTIONS_ENDPOINT);
-			
-				// Check if the response was successful (status code 200-299)
-				if (!response.ok) {
-				  throw new Error(`HTTP error! status: ${response.status}`);
-				}
-			
-				// Parse the JSON response
-				const jsonData = await response.json();
-				setQuestions(jsonData);
-			
-			} catch (e) {
-				setError(e.message);
-				setQuestions([]); // Clear data on error
-			
-			} finally {
-				setLoading(false); // Stop loading
-			}
-		};
-		
-		fetchData(); // Call the async function
-	}, []);
+    useEffect(() => {
+        // Define the async function to fetch data
+        const fetchData = async () => {
+            setStatus("loading"); // Start loading
+            setError(null); // Clear previous errors
 
-	const handleNextQuestion = () => {
-		if (questionNum === questions.length - 1) {
-			// TODO: finish / submit stuff
-			setQuestionNum(0)
-		} else {
-			setQuestionNum(questionNum + 1)
-		}
-	}
+            try {
+                const res = await fetch(QUESTIONS_ENDPOINT);
 
-	const handleResponse = (id, answer) => {
-		const response: response = {id, answer}
-		setResponses([ ...responses, response])
-	}
+                // Check if the response was successful (status code 200-299)
+                if (!res.ok) {
+                    const e = new Error(`HTTP error! status: ${res.status}`);
+                    setError(e);
+                    throw e;
+                }
 
-	const handleAnswer = (id, answer) => {
-		handleNextQuestion()
-		handleResponse(id, answer)
-	}
+                // Parse the JSON response
+                const jsonData = await res.json();
+                setQuestions(jsonData);
+                setStatus("question"); // Stop loading
+            } catch (e) {
+                console.error(e);
+                setQuestions([]); // Clear data on error
+                setStatus("error");
+            }
+        };
 
-	return loading ? (<p>Loading...</p>) : (<>
-		<Question
-			question={questions[questionNum]}
-			handler={handleAnswer}
-		/>
-		<p>{responses.map(
-			(response) => JSON.stringify(response)
-		).toString()}</p>
-	</>)
+        fetchData(); // Call the async function
+    }, []);
+
+    const submitResponses = async (payload: response[]) => {
+        setStatus("submitting");
+        try {
+            const res = await fetch(SUBMIT_ENDPOINT, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+                // Throw error for now
+                const e = new Error(`Submit failed: ${res.status}`);
+                setError(e);
+                throw e;
+            }
+
+            // const data = await res.json();
+            // console.log("Server reply:", data);
+            setStatus("submitted");
+        } catch (e) {
+            // For now we just log; surface this later
+            console.error(e);
+            setStatus("error");
+        }
+    };
+
+    const handleNextQuestion = async () => {
+        if (questionNum === questions.length - 1) {
+            await submitResponses(responses);
+        } else {
+            setQuestionNum(questionNum + 1);
+        }
+    };
+
+    const handleResponse = (id: number, answer: string) => {
+        const response: response = { id, answer };
+        setResponses((prev) => [...prev, response]);
+    };
+
+    const handleAnswer = (id: number, answer: string) => {
+        handleResponse(id, answer);
+        handleNextQuestion();
+    };
+
+    switch (status) {
+        case "loading": {
+            return <p>Loading...</p>;
+        }
+        case "question": {
+            return (
+                <>
+                    <Question
+                        question={questions[questionNum]}
+                        handler={handleAnswer}
+                    />
+                    <p>
+                        {responses
+                            .map((response) => JSON.stringify(response))
+                            .toString()}
+                    </p>
+                </>
+            );
+        }
+        case "submitting": {
+            return <p>Submitting...</p>;
+        }
+        case "submitted": {
+            return <p>Submitted! Thanks for participating :)</p>;
+        }
+        case "error": {
+            return (
+                <p>
+                    {error === null
+                        ? "There was an unknown error"
+                        : error.message}
+                </p>
+            );
+        }
+    }
 }
 
-export default App
+export default App;
