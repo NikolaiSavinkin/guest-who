@@ -67,6 +67,10 @@ app.get('/questions', async (_req: Request, res: Response) => {
     }
 });
 
+app.post('/responses', async (_req: Request, res: Response) => {
+    res.status(501).send('Work in progress')
+})
+
 async function startServer(): Promise<void> {
     try {
         await connectDatabase();
