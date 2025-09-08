@@ -5,9 +5,14 @@ import { MongoClient, ServerApiVersion, Collection} from 'mongodb';
 
 dotenv.config();
 
-const uri = `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@cluster0.8dk5hhj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const uri = process.env.DB_URI ?
+process.env.DB_URI :
+`mongodb+srv://cluster0.8dk5hhj.mongodb.net/Cluster0?authSource=%24external&authMechanism=MONGODB-X509`
 
 const client = new MongoClient(uri, {
+    tlsCertificateKeyFile: process.env.CERT,
+    authMechanism: 'MONGODB-X509',
+    authSource: '$external',
     serverApi: {
         version: ServerApiVersion.v1,
         strict: true,
