@@ -11,9 +11,9 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # JS
-**/node_modules
-**/dist
-**/dist-ssr
+**/node_modules/**
+**/dist/**
+**/dist-ssr/**
 **/*.local
 
 # Editor directories and files
