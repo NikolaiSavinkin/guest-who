@@ -1,6 +1,6 @@
 import { Answer } from "./Answer.tsx";
 
-type QuestionProps = {
+type QuestionBlockProps = {
     question: {
         id: number;
         question: string;
@@ -9,7 +9,7 @@ type QuestionProps = {
     handler: (id: number, answer: string) => void;
 };
 
-export function Question({ question, handler }: QuestionProps) {
+export function QuestionBlock({ question, handler }: QuestionBlockProps) {
     return (
         <>
             <h1>{question.question}</h1>

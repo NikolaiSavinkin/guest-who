@@ -2,27 +2,18 @@ import { useState, useEffect } from "react";
 // import reactLogo from "./assets/react.svg";
 // import viteLogo from "/vite.svg";
 import "./App.css";
-import { Question } from "./Question.tsx";
+import type { Question, QuestionResponse } from "@shared/types";
+import { QuestionBlock } from "./Question.tsx";
 
+// TODO: move to env
 const QUESTIONS_ENDPOINT = "http://localhost:8000/questions";
 const SUBMIT_ENDPOINT = "http://localhost:8000/responses";
 
-type question = {
-    id: number;
-    question: string;
-    answers: string[];
-};
-
-type response = {
-    id: number;
-    answer: string;
-};
-
 function App() {
     const [questionNum, setQuestionNum] = useState(0);
-    const [questions, setQuestions] = useState([] as question[]);
+    const [questions, setQuestions] = useState([] as Question[]);
     const [error, setError] = useState(null as Error | null);
-    const [responses, setResponses] = useState([] as response[]);
+    const [responses, setResponses] = useState([] as QuestionResponse[]);
     const [status, setStatus] = useState(
         "loading" as
             | "loading"
@@ -62,7 +53,7 @@ function App() {
         fetchData(); // Call the async function
     }, []);
 
-    const submitResponses = async (payload: response[]) => {
+    const submitResponses = async (payload: QuestionResponse[]) => {
         setStatus("submitting");
         try {
             const res = await fetch(SUBMIT_ENDPOINT, {
@@ -75,7 +66,9 @@ function App() {
 
             if (!res.ok) {
                 // Throw error for now
-                const e = new Error(`Submit failed: ${res.status}`);
+                const e = new Error(
+                    `Submit failed: (${res.status}) ${await res.text()}`
+                );
                 setError(e);
                 throw e;
             }
@@ -99,7 +92,7 @@ function App() {
     };
 
     const handleResponse = (id: number, answer: string) => {
-        const response: response = { id, answer };
+        const response: QuestionResponse = { id, answer };
         setResponses((prev) => [...prev, response]);
     };
 
@@ -115,7 +108,7 @@ function App() {
         case "question": {
             return (
                 <>
-                    <Question
+                    <QuestionBlock
                         question={questions[questionNum]}
                         handler={handleAnswer}
                     />

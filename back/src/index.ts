@@ -1,7 +1,8 @@
 // src/index.ts
-import express, { Express, Request, Response, Application } from 'express';
+import express, { Express, Request as ExpressRequest, Response as ExpressResponse, Application } from 'express';
 import dotenv from 'dotenv';
 import { MongoClient, ServerApiVersion, Collection} from 'mongodb';
+import {question_response_schema} from "@shared/schema";
 
 dotenv.config();
 
@@ -44,11 +45,11 @@ type QuestionDocument = {
 const app: Application = express();
 const port = process.env.PORT || 8000;
 
-app.get('/', (req: Request, res: Response) => {
+app.get('/', (req: ExpressRequest, res: ExpressResponse) => {
     res.send('Welcome to Express & TypeScript Server');
 });
 
-app.get('/questions', async (_req: Request, res: Response) => {
+app.get('/questions', async (_req: ExpressRequest, res: ExpressResponse) => {
     if (!questionsCollection) {
         return res.status(500).send('Error: Could not connect to the database or questions collection not initialized.');
     }
@@ -67,8 +68,15 @@ app.get('/questions', async (_req: Request, res: Response) => {
     }
 });
 
-app.post('/responses', async (_req: Request, res: Response) => {
-    res.status(501).send('Work in progress')
+app.post('/responses', async (req: ExpressRequest, res: ExpressResponse) => {
+    console.log("\n\n\nhello\n\n\n");
+    const submission = question_response_schema.safeParse(req.body);
+    if (!submission.success) {
+        console.error(submission.error);
+    } else {
+        console.log(submission.data);
+    }
+    res.status(501).send('Work in progress EEEEXTRA')
 })
 
 async function startServer(): Promise<void> {
