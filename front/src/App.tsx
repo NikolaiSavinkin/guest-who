@@ -15,12 +15,7 @@ function App() {
     const [error, setError] = useState(null as Error | null);
     const [responses, setResponses] = useState([] as QuestionResponse[]);
     const [status, setStatus] = useState(
-        "loading" as
-            | "loading"
-            | "question"
-            | "submitting"
-            | "submitted"
-            | "error"
+        "loading" as "loading" | "question" | "submitted" | "error"
     );
 
     useEffect(() => {
@@ -54,7 +49,8 @@ function App() {
     }, []);
 
     const submitResponses = async (payload: QuestionResponse[]) => {
-        setStatus("submitting");
+        if (status === "submitted") return;
+        setStatus("submitted");
         try {
             const res = await fetch(SUBMIT_ENDPOINT, {
                 method: "POST",
@@ -73,9 +69,8 @@ function App() {
                 throw e;
             }
 
-            // const data = await res.json();
-            // console.log("Server reply:", data);
-            setStatus("submitted");
+            const data = await res.text();
+            console.log("Server reply:", data);
         } catch (e) {
             // For now we just log; surface this later
             console.error(e);
@@ -83,22 +78,18 @@ function App() {
         }
     };
 
-    const handleNextQuestion = async () => {
-        if (questionNum === questions.length - 1) {
-            await submitResponses(responses);
-        } else {
-            setQuestionNum(questionNum + 1);
-        }
-    };
-
-    const handleResponse = (id: number, answer: string) => {
+    const handleAnswer = (id: string, answer: string) => {
         const response: QuestionResponse = { id, answer };
-        setResponses((prev) => [...prev, response]);
-    };
+        setResponses((prev) => {
+            const updated = [...prev, response];
 
-    const handleAnswer = (id: number, answer: string) => {
-        handleResponse(id, answer);
-        handleNextQuestion();
+            if (updated.length === questions.length && status != "submitted") {
+                submitResponses(updated);
+            }
+            return updated;
+        });
+
+        setQuestionNum((q) => Math.min(q + 1, questions.length - 1));
     };
 
     switch (status) {
@@ -119,9 +110,6 @@ function App() {
                     </p>
                 </>
             );
-        }
-        case "submitting": {
-            return <p>Submitting...</p>;
         }
         case "submitted": {
             return <p>Submitted! Thanks for participating :)</p>;

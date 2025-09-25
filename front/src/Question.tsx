@@ -2,11 +2,11 @@ import { Answer } from "./Answer.tsx";
 
 type QuestionBlockProps = {
     question: {
-        id: number;
+        id: string;
         question: string;
         answers: string[];
     };
-    handler: (id: number, answer: string) => void;
+    handler: (id: string, answer: string) => void;
 };
 
 export function QuestionBlock({ question, handler }: QuestionBlockProps) {
