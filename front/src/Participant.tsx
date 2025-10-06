@@ -4,12 +4,13 @@ import { useState, useEffect } from "react";
 import "./App.css";
 import type { Question, QuestionResponse } from "@shared/types";
 import { QuestionBlock } from "./Question.tsx";
+import { Name } from "./Name.tsx";
 
 // TODO: move to env
 const QUESTIONS_ENDPOINT = "http://localhost:8000/questions";
 const SUBMIT_ENDPOINT = "http://localhost:8000/responses";
 
-function App() {
+function Participant() {
     const [questionNum, setQuestionNum] = useState(0);
     const [questions, setQuestions] = useState([] as Question[]);
     const [name, setName] = useState("");
@@ -20,25 +21,22 @@ function App() {
     );
 
     useEffect(() => {
-        // Define the async function to fetch data
         const fetchData = async () => {
-            setStatus("loading"); // Start loading
-            setError(null); // Clear previous errors
+            setStatus("loading");
+            setError(null);
 
             try {
                 const res = await fetch(QUESTIONS_ENDPOINT);
 
-                // Check if the response was successful (status code 200-299)
                 if (!res.ok) {
                     const e = new Error(`HTTP error! status: ${res.status}`);
                     setError(e);
                     throw e;
                 }
 
-                // Parse the JSON response
                 const jsonData = await res.json();
                 setQuestions(jsonData);
-                setStatus("question"); // Stop loading
+                setStatus("question");
             } catch (e) {
                 console.error(e);
                 setQuestions([]); // Clear data on error
@@ -102,49 +100,20 @@ function App() {
         }
         case "question": {
             return (
-                <>
-                    <QuestionBlock
-                        question={questions[questionNum]}
-                        handler={handleAnswer}
-                    />
-                    <p>
-                        {responses
-                            .map((response) => JSON.stringify(response))
-                            .toString()}
-                    </p>
-                </>
+                <QuestionBlock
+                    question={questions[questionNum]}
+                    handler={handleAnswer}
+                />
             );
         }
         case "name": {
             return (
-                <>
-                    <div>
-                        <h2>Thanks for answering!</h2>
-                        <label>
-                            Your name:{" "}
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter" && name.trim()) {
-                                        e.preventDefault();
-                                        submitResponses(responses, name);
-                                    }
-                                }}
-                                placeholder="Enter your name"
-                                autoComplete="given-name"
-                                autoFocus={true}
-                            />
-                        </label>
-                        <button
-                            onClick={() => submitResponses(responses, name)}
-                            disabled={!name.trim()}
-                        >
-                            Submit all answers
-                        </button>
-                    </div>
-                </>
+                <Name
+                    name={name}
+                    setName={setName}
+                    questionResponses={responses}
+                    submitResponses={submitResponses}
+                />
             );
         }
         case "submitted": {
@@ -162,4 +131,4 @@ function App() {
     }
 }
 
-export default App;
+export default Participant;
