@@ -49,6 +49,10 @@ type QuestionDocument = {
     answers: string[];
 };
 
+type ResponseNameDocument = {
+    name: string;
+};
+
 const app: Application = express();
 app.use(express.json());
 const port = process.env.PORT || 8000;
@@ -81,6 +85,35 @@ app.get("/questions", async (_req: ExpressRequest, res: ExpressResponse) => {
         res.status(500).send("Error fetching questions from the database");
     }
 });
+
+app.get(
+    "/responses/names",
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        if (!responsesCollection) {
+            return res
+                .status(500)
+                .send(
+                    "Error: Could not connect to the database or responses collection not initialized."
+                );
+        }
+
+        try {
+            const responseNamesFromDb = await responsesCollection
+                .find<ResponseNameDocument>(
+                    {},
+                    { projection: { name: 1, _id: 0 } }
+                )
+                .toArray();
+            const names = responseNamesFromDb.map(
+                (responseNamesFromDb) => responseNamesFromDb.name
+            );
+            return res.json(names);
+        } catch (error) {
+            console.error("Error fetching questions from MongoDB:", error);
+            res.status(500).send("Error fetching questions from the database");
+        }
+    }
+);
 
 app.post("/responses", async (req: ExpressRequest, res: ExpressResponse) => {
     //TODO: make idempotent
