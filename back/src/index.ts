@@ -7,7 +7,7 @@ import express, {
 } from "express";
 import dotenv from "dotenv";
 import { MongoClient, ServerApiVersion, Collection } from "mongodb";
-import { question_response_array_schema } from "@shared/schema";
+import { question_response_submission_schema } from "@shared/schema";
 
 dotenv.config();
 
@@ -83,11 +83,13 @@ app.get("/questions", async (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.post("/responses", async (req: ExpressRequest, res: ExpressResponse) => {
+    //TODO: make idempotent
     console.log(`response ${new Date()}`);
-    const submission = question_response_array_schema.safeParse(req.body);
+    const submission = question_response_submission_schema.safeParse(req.body);
     if (!submission.success) {
+        console.log(req.body);
         console.error(submission.error);
-        res.status(400).send("Invalid format");
+        return res.status(400).send("Invalid format");
     }
 
     const doc = {

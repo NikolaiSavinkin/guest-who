@@ -12,10 +12,11 @@ const SUBMIT_ENDPOINT = "http://localhost:8000/responses";
 function App() {
     const [questionNum, setQuestionNum] = useState(0);
     const [questions, setQuestions] = useState([] as Question[]);
+    const [name, setName] = useState("");
     const [error, setError] = useState(null as Error | null);
     const [responses, setResponses] = useState([] as QuestionResponse[]);
     const [status, setStatus] = useState(
-        "loading" as "loading" | "question" | "submitted" | "error"
+        "loading" as "loading" | "question" | "name" | "submitted" | "error"
     );
 
     useEffect(() => {
@@ -48,7 +49,10 @@ function App() {
         fetchData(); // Call the async function
     }, []);
 
-    const submitResponses = async (payload: QuestionResponse[]) => {
+    const submitResponses = async (
+        questions: QuestionResponse[],
+        name: string
+    ) => {
         if (status === "submitted") return;
         setStatus("submitted");
         try {
@@ -57,7 +61,7 @@ function App() {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(payload),
+                body: JSON.stringify({ questions, name }),
             });
 
             if (!res.ok) {
@@ -84,7 +88,7 @@ function App() {
             const updated = [...prev, response];
 
             if (updated.length === questions.length && status != "submitted") {
-                submitResponses(updated);
+                setStatus("name");
             }
             return updated;
         });
@@ -108,6 +112,38 @@ function App() {
                             .map((response) => JSON.stringify(response))
                             .toString()}
                     </p>
+                </>
+            );
+        }
+        case "name": {
+            return (
+                <>
+                    <div>
+                        <h2>Thanks for answering!</h2>
+                        <label>
+                            Your name:{" "}
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && name.trim()) {
+                                        e.preventDefault();
+                                        submitResponses(responses, name);
+                                    }
+                                }}
+                                placeholder="Enter your name"
+                                autoComplete="given-name"
+                                autoFocus={true}
+                            />
+                        </label>
+                        <button
+                            onClick={() => submitResponses(responses, name)}
+                            disabled={!name.trim()}
+                        >
+                            Submit all answers
+                        </button>
+                    </div>
                 </>
             );
         }
