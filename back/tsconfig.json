@@ -14,7 +14,7 @@
     "baseUrl": ".",
     "paths": {"@shared/*": ["../shared/src/*"]}
   },
-  "include": ["src/**/*"], // Only compile files in the src directory
+  "include": ["src/**/*", "../shared/src/schema.ts", "../shared/src/types.d.ts"], // Only compile files in the src directory
   "exclude": ["node_modules"], // Exclude node_modules
   "references": [{"path": "../shared"}],
   "ts-node": {

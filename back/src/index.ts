@@ -6,8 +6,15 @@ import express, {
     Application,
 } from "express";
 import dotenv from "dotenv";
-import { MongoClient, ServerApiVersion, Collection } from "mongodb";
+import {
+    MongoClient,
+    ServerApiVersion,
+    Collection,
+    ObjectId,
+    InsertOneResult,
+} from "mongodb";
 import { question_response_submission_schema } from "@shared/schema";
+import { Question, QuestionResponseSubmission, Game } from "@shared/types";
 
 dotenv.config();
 
@@ -28,6 +35,7 @@ const client = new MongoClient(uri, {
 
 let questionsCollection: Collection | null = null;
 let responsesCollection: Collection | null = null;
+let gamesCollection: Collection | null = null;
 
 async function connectDatabase(): Promise<void> {
     try {
@@ -37,21 +45,12 @@ async function connectDatabase(): Promise<void> {
         const db = client.db("guest_who");
         questionsCollection = db.collection("questions");
         responsesCollection = db.collection("responses");
+        gamesCollection = db.collection("games");
     } catch (error) {
         console.error("Error connecting to MongoDB:", error);
         throw error; // Re-throw the error to be caught later
     }
 }
-
-type QuestionDocument = {
-    _id: any; // MongoDB uses _id, can be ObjectId or string
-    question: string;
-    answers: string[];
-};
-
-type ResponseNameDocument = {
-    name: string;
-};
 
 const app: Application = express();
 app.use(express.json());
@@ -59,6 +58,67 @@ const port = process.env.PORT || 8000;
 
 app.get("/", (req: ExpressRequest, res: ExpressResponse) => {
     res.send("Welcome to Express & TypeScript Server");
+});
+
+app.post("/games/new", async (req: ExpressRequest, res: ExpressResponse) => {
+    if (!responsesCollection) {
+        return res
+            .status(500)
+            .send(
+                "Error: Could not connect to the database or responses collection not initialized."
+            );
+    }
+    if (!gamesCollection) {
+        return res
+            .status(500)
+            .send(
+                "Error: Could not connect to the database or games collection not initialized."
+            );
+    }
+
+    try {
+        const players = await responsesCollection
+            .find<QuestionResponseSubmission>({})
+            .toArray();
+
+        if (players.length < 2) {
+            res.status(202).send("Not enough players to start the game");
+        }
+
+        const it = players[Math.floor(Math.random() * players.length)];
+
+        const new_game: Omit<Game, "_id"> = {
+            it_id: it._id,
+            it_name: it.name,
+            num_clues: it.questions.length,
+            next_clue: 0,
+            clues: it.questions,
+        };
+
+        try {
+            const result = await gamesCollection.insertOne(new_game);
+            if (!result.acknowledged) {
+                throw new Error("Insert not acknowledged.");
+            }
+            return res
+                .status(201)
+                .location(
+                    `${req.protocol}:${req.hostname}/games/${result.insertedId}`
+                )
+                .json({
+                    ...new_game,
+                    _id: result.insertedId,
+                });
+        } catch (error) {
+            console.error("Error inserting response:", error);
+            return res.status(500).json({ error: "Failed to store response" });
+        }
+    } catch (error) {
+        console.error("Error fetching questions from MongoDB:", error);
+        return res
+            .status(500)
+            .send("Error fetching questions from the database");
+    }
 });
 
 app.get("/questions", async (_req: ExpressRequest, res: ExpressResponse) => {
@@ -71,18 +131,15 @@ app.get("/questions", async (_req: ExpressRequest, res: ExpressResponse) => {
     }
 
     try {
-        const questionsFromDb = await questionsCollection
-            .find<QuestionDocument>({})
+        const questions = await questionsCollection
+            .find<Question>({})
             .toArray();
-        const formattedQuestions = questionsFromDb.map((doc) => ({
-            id: doc._id.toString(),
-            question: doc.question,
-            answers: doc.answers,
-        }));
-        res.json(formattedQuestions);
+        return res.json(questions);
     } catch (error) {
         console.error("Error fetching questions from MongoDB:", error);
-        res.status(500).send("Error fetching questions from the database");
+        return res
+            .status(500)
+            .send("Error fetching questions from the database");
     }
 });
 
@@ -99,9 +156,9 @@ app.get(
 
         try {
             const responseNamesFromDb = await responsesCollection
-                .find<ResponseNameDocument>(
+                .find<QuestionResponseSubmission>(
                     {},
-                    { projection: { name: 1, _id: 0 } }
+                    { projection: { name: 1, _id: 1 } }
                 )
                 .toArray();
             const names = responseNamesFromDb.map(
@@ -110,35 +167,45 @@ app.get(
             return res.json(names);
         } catch (error) {
             console.error("Error fetching questions from MongoDB:", error);
-            res.status(500).send("Error fetching questions from the database");
+            return res
+                .status(500)
+                .send("Error fetching questions from the database");
         }
     }
 );
 
 app.post("/responses", async (req: ExpressRequest, res: ExpressResponse) => {
     //TODO: make idempotent
-    console.log(`response ${new Date()}`);
+
+    if (!responsesCollection) {
+        return res
+            .status(500)
+            .send(
+                "Error: Could not connect to the database or responses collection not initialized."
+            );
+    }
+
     const submission = question_response_submission_schema.safeParse(req.body);
+
     if (!submission.success) {
         console.log(req.body);
         console.error(submission.error);
         return res.status(400).send("Invalid format");
     }
 
-    const doc = {
+    const doc: QuestionResponseSubmission = {
         ...submission.data,
         createdAt: new Date(),
+        _id: new ObjectId(),
     };
+
     try {
-        if (!responsesCollection) {
-            throw new Error("Responses collection not initialized");
-        }
-
-        const result = await responsesCollection.insertOne(doc);
-
+        const result: InsertOneResult = await responsesCollection.insertOne(
+            doc
+        );
         return res.status(201).send("Response saved successfully");
-    } catch (err) {
-        console.error("Error inserting response:", err);
+    } catch (error) {
+        console.error("Error inserting response:", error);
         return res.status(500).json({ error: "Failed to store response" });
     }
 });

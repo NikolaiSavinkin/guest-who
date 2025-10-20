@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 // import reactLogo from "./assets/react.svg";
 // import viteLogo from "/vite.svg";
-import "./App.css";
+import "./../App.css";
 import type { Question, QuestionResponse } from "@shared/types";
 import { QuestionBlock } from "./Question.tsx";
 import { Name } from "./Name.tsx";
@@ -80,8 +80,8 @@ function Participant() {
         }
     };
 
-    const handleAnswer = (id: string, answer: string) => {
-        const response: QuestionResponse = { id, answer };
+    const handleAnswer = (_id: string, question: string, answer: string) => {
+        const response: QuestionResponse = { _id, question, answer };
         setResponses((prev) => {
             const updated = [...prev, response];
 

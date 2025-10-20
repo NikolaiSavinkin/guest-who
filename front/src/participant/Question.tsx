@@ -2,11 +2,11 @@ import { Answer } from "./Answer.tsx";
 
 type QuestionBlockProps = {
     question: {
-        id: string;
+        _id: string;
         question: string;
         answers: string[];
     };
-    handler: (id: string, answer: string) => void;
+    handler: (id: string, question: string, answer: string) => void;
 };
 
 export function QuestionBlock({ question, handler }: QuestionBlockProps) {
@@ -19,7 +19,8 @@ export function QuestionBlock({ question, handler }: QuestionBlockProps) {
                         <li key={answer}>
                             {" "}
                             <Answer
-                                qid={question.id}
+                                qid={question._id}
+                                question={question.question}
                                 text={answer}
                                 handler={handler}
                             />{" "}

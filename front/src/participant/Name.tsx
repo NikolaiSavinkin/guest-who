@@ -5,10 +5,7 @@ type NameProps = {
     setName: (value: React.SetStateAction<string>) => void;
     questionResponses: QuestionResponse[];
     submitResponses: (
-        questions: {
-            id: string;
-            answer: string;
-        }[],
+        questions: QuestionResponse[],
         name: string
     ) => Promise<void>;
 };

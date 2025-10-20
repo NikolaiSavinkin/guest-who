@@ -1,11 +1,16 @@
-import "./App.css";
+import "./../App.css";
 import { useEffect, useState } from "react";
-import { Ready } from "./Ready";
+import { Ready } from "../participant/Ready";
+import type { Game } from "@shared/types";
+import { game_schema } from "@shared/schema";
+import { Gameplay } from "./Gameplay";
 
 const RESPONSES_ENDPOINT = "http://localhost:8000/responses/names";
+const START_GAME_ENDPOINT = "http://localhost:8000/games/new";
 
 function Admin() {
     const [participants, setParticipants] = useState<string[]>([]);
+    const [game, setGame] = useState(null as Game | null);
     const [error, setError] = useState(null as Error | null);
     const [status, setStatus] = useState(
         "loading" as "loading" | "ready" | "playing" | "error"
@@ -38,17 +43,55 @@ function Admin() {
         fetchData(); // Call the async function
     }, []);
 
+    const startGame = async () => {
+        try {
+            const res = await fetch(START_GAME_ENDPOINT, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (!res.ok) {
+                const e = new Error(
+                    `Submit failed: (${res.status}) ${await res.text()}`
+                );
+                setError(e);
+                throw e;
+            }
+
+            const json = await res.json();
+
+            const new_game = game_schema.safeParse(json);
+            if (new_game.error) {
+                const e = new Error(
+                    `Failed to get new game. Message: ${new_game.error}`
+                );
+                setError(e);
+                throw e;
+            }
+
+            setStatus("playing");
+            setGame(new_game.data);
+        } catch (e) {
+            console.error(e);
+            setStatus("error");
+        }
+    };
+
     switch (status) {
         case "loading": {
             return <p>Loading...</p>;
         }
 
         case "ready": {
-            return <Ready participants={participants} />;
+            return <Ready participants={participants} handler={startGame} />;
         }
 
         case "playing": {
-            return <p>Playing</p>;
+            if (game === null) return <p>Game started without a game object</p>;
+
+            return <Gameplay game={game} />;
         }
 
         case "error": {
