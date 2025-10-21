@@ -11,6 +11,7 @@ const START_GAME_ENDPOINT = "http://localhost:8000/games/new";
 function Admin() {
     const [participants, setParticipants] = useState<string[]>([]);
     const [game, setGame] = useState(null as Game | null);
+    const [showName, setShowName] = useState(false);
     const [error, setError] = useState(null as Error | null);
     const [status, setStatus] = useState(
         "loading" as "loading" | "ready" | "playing" | "error"
@@ -79,6 +80,20 @@ function Admin() {
         }
     };
 
+    const toggleShowName = () => {
+        setShowName(!showName);
+    };
+
+    const nextClue = () => {
+        setGame((prev: Game | null) => {
+            if (prev === null) return prev;
+            const next: Game = { ...prev };
+            next.next_clue =
+                next.next_clue + 1 === next.num_clues ? 0 : next.next_clue + 1;
+            return next;
+        });
+    };
+
     switch (status) {
         case "loading": {
             return <p>Loading...</p>;
@@ -91,7 +106,14 @@ function Admin() {
         case "playing": {
             if (game === null) return <p>Game started without a game object</p>;
 
-            return <Gameplay game={game} />;
+            return (
+                <Gameplay
+                    game={game}
+                    showName={showName}
+                    toggleShowName={toggleShowName}
+                    nextClue={nextClue}
+                />
+            );
         }
 
         case "error": {

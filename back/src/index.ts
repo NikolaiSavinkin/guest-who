@@ -87,7 +87,12 @@ app.post("/games/new", async (req: ExpressRequest, res: ExpressResponse) => {
 
         const it = players[Math.floor(Math.random() * players.length)];
 
-        const new_game: Omit<Game, "_id"> = {
+        // const new_game: Omit<Game, "_id"> = {
+        // use Pick instead of Omit because Omit sometimes excludes the _id from all the clues
+        const new_game: Pick<
+            Game,
+            "it_id" | "it_name" | "num_clues" | "next_clue" | "clues"
+        > = {
             it_id: it._id,
             it_name: it.name,
             num_clues: it.questions.length,
