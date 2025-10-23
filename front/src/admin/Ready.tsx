@@ -1,11 +1,16 @@
+import { GetGame } from "./GetGame";
+
 type ReadyProps = {
     participants: string[];
-    handler: () => void;
+    startGame: () => void;
+    getGame: (game_id: string) => void;
 };
-export function Ready({ participants, handler }: ReadyProps) {
+
+export function Ready({ participants, startGame, getGame }: ReadyProps) {
     return (
         <>
-            <button onClick={handler}>Start Game</button>
+            <GetGame getGame={getGame} />
+            <button onClick={startGame}>Start New Game</button>
             <h1>Participants:</h1>
             <ul>
                 {participants.map((name, index) => {

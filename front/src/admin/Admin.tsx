@@ -1,12 +1,13 @@
 import "./../App.css";
 import { useEffect, useState } from "react";
-import { Ready } from "../participant/Ready";
+import { Ready } from "./Ready";
 import type { Game } from "@shared/types";
 import { game_schema } from "@shared/schema";
 import { Gameplay } from "./Gameplay";
 
 const RESPONSES_ENDPOINT = "http://localhost:8000/responses/names";
 const START_GAME_ENDPOINT = "http://localhost:8000/games/new";
+const GAME_ENDPOINT = "http://localhost:8000/games";
 
 function Admin() {
     const [participants, setParticipants] = useState<string[]>([]);
@@ -44,6 +45,30 @@ function Admin() {
         fetchData(); // Call the async function
     }, []);
 
+    const handleGameResponse = async (res: Response) => {
+        if (!res.ok) {
+            const e = new Error(
+                `Submit failed: (${res.status}) ${await res.text()}`
+            );
+            setError(e);
+            throw e;
+        }
+
+        const json = await res.json();
+
+        const new_game = game_schema.safeParse(json);
+        if (new_game.error) {
+            const e = new Error(
+                `Failed to get new game. Message: ${new_game.error}`
+            );
+            setError(e);
+            throw e;
+        }
+
+        setStatus("playing");
+        setGame(new_game.data);
+    };
+
     const startGame = async () => {
         try {
             const res = await fetch(START_GAME_ENDPOINT, {
@@ -53,27 +78,23 @@ function Admin() {
                 },
             });
 
-            if (!res.ok) {
-                const e = new Error(
-                    `Submit failed: (${res.status}) ${await res.text()}`
-                );
-                setError(e);
-                throw e;
-            }
+            handleGameResponse(res);
+        } catch (e) {
+            console.error(e);
+            setStatus("error");
+        }
+    };
 
-            const json = await res.json();
+    const getGame = async (game_id: string) => {
+        try {
+            const res = await fetch(GAME_ENDPOINT + "/" + game_id, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
 
-            const new_game = game_schema.safeParse(json);
-            if (new_game.error) {
-                const e = new Error(
-                    `Failed to get new game. Message: ${new_game.error}`
-                );
-                setError(e);
-                throw e;
-            }
-
-            setStatus("playing");
-            setGame(new_game.data);
+            handleGameResponse(res);
         } catch (e) {
             console.error(e);
             setStatus("error");
@@ -100,7 +121,13 @@ function Admin() {
         }
 
         case "ready": {
-            return <Ready participants={participants} handler={startGame} />;
+            return (
+                <Ready
+                    participants={participants}
+                    startGame={startGame}
+                    getGame={getGame}
+                />
+            );
         }
 
         case "playing": {

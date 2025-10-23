@@ -15,6 +15,7 @@ export function Gameplay({
 }: GameplayProps) {
     return (
         <>
+            <p>Game ID: {game._id}</p>
             <button onClick={toggleShowName}>
                 {showName ? game.it_name : "Show Name"}
             </button>
