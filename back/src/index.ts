@@ -126,6 +126,35 @@ app.post("/games/new", async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
+app.get("/games/:gameId", async (req: ExpressRequest, res: ExpressResponse) => {
+    if (!gamesCollection) {
+        return res
+            .status(500)
+            .send(
+                "Error: Could not connect to the database or games collection not initialized."
+            );
+    }
+    let game_id: ObjectId;
+
+    try {
+        game_id = new ObjectId(req.params.gameId);
+    } catch (error) {
+        console.log(JSON.stringify(req.params));
+        console.error(error);
+        return res.status(400).send("Invalid game ID");
+    }
+
+    try {
+        const game_doc = await gamesCollection.findOne({ _id: game_id });
+
+        if (game_doc === null) {
+            return res.status(404).send("Game not found");
+        }
+
+        return res.status(200).json(game_doc);
+    } catch (error) {}
+});
+
 app.get("/questions", async (_req: ExpressRequest, res: ExpressResponse) => {
     if (!questionsCollection) {
         return res
@@ -193,7 +222,7 @@ app.post("/responses", async (req: ExpressRequest, res: ExpressResponse) => {
     const submission = question_response_submission_schema.safeParse(req.body);
 
     if (!submission.success) {
-        console.log(req.body);
+        console.log(JSON.stringify(req.body));
         console.error(submission.error);
         return res.status(400).send("Invalid format");
     }
