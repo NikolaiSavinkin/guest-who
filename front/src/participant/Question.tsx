@@ -6,10 +6,15 @@ type QuestionBlockProps = {
         question: string;
         answers: string[];
     };
-    handler: (id: string, question: string, answer: string) => void;
+    handleAnswer: (id: string, question: string, answer: string) => void;
+    handleBack: () => void;
 };
 
-export function QuestionBlock({ question, handler }: QuestionBlockProps) {
+export function QuestionBlock({
+    question,
+    handleAnswer,
+    handleBack,
+}: QuestionBlockProps) {
     return (
         <>
             <h1>{question.question}</h1>
@@ -22,12 +27,13 @@ export function QuestionBlock({ question, handler }: QuestionBlockProps) {
                                 qid={question._id}
                                 question={question.question}
                                 text={answer}
-                                handler={handler}
+                                handler={handleAnswer}
                             />{" "}
                         </li>
                     );
                 })}
             </ul>
+            <button onClick={handleBack}>Back</button>
         </>
     );
 }

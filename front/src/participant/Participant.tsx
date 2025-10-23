@@ -94,16 +94,31 @@ function Participant() {
         setQuestionNum((q) => Math.min(q + 1, questions.length - 1));
     };
 
+    const handleBack = () => {
+        if (status === "name") {
+            setStatus("question");
+        } else {
+            setQuestionNum((q) => Math.max(q - 1, 0));
+        }
+
+        setResponses((prev) => {
+            return prev.slice(0, -1);
+        });
+    };
+
     switch (status) {
         case "loading": {
             return <p>Loading...</p>;
         }
         case "question": {
             return (
-                <QuestionBlock
-                    question={questions[questionNum]}
-                    handler={handleAnswer}
-                />
+                <>
+                    <QuestionBlock
+                        question={questions[questionNum]}
+                        handleAnswer={handleAnswer}
+                        handleBack={handleBack}
+                    />
+                </>
             );
         }
         case "name": {
@@ -113,6 +128,7 @@ function Participant() {
                     setName={setName}
                     questionResponses={responses}
                     submitResponses={submitResponses}
+                    handleBack={handleBack}
                 />
             );
         }

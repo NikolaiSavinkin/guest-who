@@ -8,6 +8,7 @@ type NameProps = {
         questions: QuestionResponse[],
         name: string
     ) => Promise<void>;
+    handleBack: () => void;
 };
 
 export function Name({
@@ -15,6 +16,7 @@ export function Name({
     setName,
     questionResponses,
     submitResponses,
+    handleBack,
 }: NameProps) {
     return (
         <>
@@ -43,6 +45,7 @@ export function Name({
                 >
                     Submit all answers
                 </button>
+                <button onClick={handleBack}>Back</button>
             </div>
         </>
     );
