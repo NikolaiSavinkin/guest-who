@@ -5,7 +5,7 @@
   "license": "MIT",
   "main": "dist/index.js",
   "scripts": {
-    "build": "npx tsc",
+    "build": "yarn tsc",
     "start": "yarn ts-node src/index.ts",
     "clean": "rimraf dist"
   },
