@@ -7,8 +7,7 @@ import { QuestionBlock } from "./Question.tsx";
 import { Name } from "./Name.tsx";
 
 // TODO: move to env
-const QUESTIONS_ENDPOINT = "http://localhost:8000/questions";
-const SUBMIT_ENDPOINT = "http://localhost:8000/responses";
+const HOST = "http://localhost:8000";
 
 function Participant() {
     const [questionNum, setQuestionNum] = useState(0);
@@ -26,7 +25,7 @@ function Participant() {
             setError(null);
 
             try {
-                const res = await fetch(QUESTIONS_ENDPOINT);
+                const res = await fetch(HOST + "/questions");
 
                 if (!res.ok) {
                     const e = new Error(`HTTP error! status: ${res.status}`);
@@ -54,7 +53,7 @@ function Participant() {
         if (status === "submitted") return;
         setStatus("submitted");
         try {
-            const res = await fetch(SUBMIT_ENDPOINT, {
+            const res = await fetch(HOST + "/responses", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

@@ -5,9 +5,7 @@ import type { Game } from "@shared/types";
 import { game_schema } from "@shared/schema";
 import { Gameplay } from "./Gameplay";
 
-const RESPONSES_ENDPOINT = "http://localhost:8000/responses/names";
-const START_GAME_ENDPOINT = "http://localhost:8000/games/new";
-const GAME_ENDPOINT = "http://localhost:8000/games";
+const HOST = "http://localhost:8000";
 
 function Admin() {
     const [participants, setParticipants] = useState<string[]>([]);
@@ -24,7 +22,7 @@ function Admin() {
             setError(null);
 
             try {
-                const res = await fetch(RESPONSES_ENDPOINT);
+                const res = await fetch(HOST + "/responses/names");
 
                 if (!res.ok) {
                     const e = new Error(`HTTP error! status: ${res.status}`);
@@ -71,7 +69,7 @@ function Admin() {
 
     const startGame = async () => {
         try {
-            const res = await fetch(START_GAME_ENDPOINT, {
+            const res = await fetch(HOST + "/games/new", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -87,7 +85,7 @@ function Admin() {
 
     const getGame = async (game_id: string) => {
         try {
-            const res = await fetch(GAME_ENDPOINT + "/" + game_id, {
+            const res = await fetch(HOST + "/games/" + game_id, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
