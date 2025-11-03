@@ -7,9 +7,9 @@
   "scripts": {
     "clean": "rimraf back/dist front/dist shared/dist",
     "build:all": "yarn run build:shared && yarn run build:backend && yarn run build:frontend",
-    "build:shared": "yarn --cwd shared run build",
-    "build:backend": "yarn --cwd back run build",
-    "build:frontend": "yarn --cwd front run build",
+    "build:shared": "yarn --cwd shared install && yarn --cwd shared run build",
+    "build:backend": "yarn --cwd back install && yarn --cwd back run build",
+    "build:frontend": "yarn --cwd front install && yarn --cwd front run build",
     "start:backend": "yarn --cwd back run start",
     "start:frontend": "yarn --cwd front run start"
   },
