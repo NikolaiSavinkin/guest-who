@@ -5,7 +5,9 @@ import type { Game } from "@shared/types";
 import { game_schema } from "@shared/schema";
 import { Gameplay } from "./Gameplay";
 
-const HOST = "http://localhost:8000";
+const HOST = import.meta.env.VITE_HOST
+    ? import.meta.env.VITE_HOST
+    : "http://localhost:8000";
 
 function Admin() {
     const [participants, setParticipants] = useState<string[]>([]);
@@ -24,7 +26,7 @@ function Admin() {
             try {
                 const res = await fetch(HOST + "/responses/names");
 
-                if (!res.ok) {
+                if (!res.ok || res.status != 304) {
                     const e = new Error(`HTTP error! status: ${res.status}`);
                     setError(e);
                     throw e;

@@ -6,8 +6,9 @@ import type { Question, QuestionResponse } from "@shared/types";
 import { QuestionBlock } from "./Question.tsx";
 import { Name } from "./Name.tsx";
 
-// TODO: move to env
-const HOST = "http://localhost:8000";
+const HOST = import.meta.env.VITE_HOST
+    ? import.meta.env.VITE_HOST
+    : "http://localhost:8000";
 
 function Participant() {
     const [questionNum, setQuestionNum] = useState(0);
@@ -27,7 +28,7 @@ function Participant() {
             try {
                 const res = await fetch(HOST + "/questions");
 
-                if (!res.ok) {
+                if (!res.ok || res.status != 304) {
                     const e = new Error(`HTTP error! status: ${res.status}`);
                     setError(e);
                     throw e;
