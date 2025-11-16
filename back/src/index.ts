@@ -1,4 +1,5 @@
 // src/index.ts
+import cors from "cors";
 import express, {
     Express,
     Request as ExpressRequest,
@@ -18,11 +19,33 @@ import { Question, QuestionResponseSubmission, Game } from "@shared/types";
 
 dotenv.config();
 
-const uri = process.env.DB_URI
+const app: Application = express();
+const port = process.env.PORT || 8000;
+
+if (!process.env.CORS_ORIGIN) {
+    throw new Error("CORS must be enabled. Define CORS_ORIGIN in .env file.");
+}
+
+var corsOptions = {
+    origin: process.env.CORS_ORIGIN === "*" ? true : process.env.CORS_ORIGIN,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+console.log(
+    `CORS Origin: ${corsOptions.origin} (${typeof corsOptions.origin})`
+);
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+
+app.use(express.json());
+
+const db = process.env.DB_URI
     ? process.env.DB_URI
     : `mongodb+srv://cluster0.8dk5hhj.mongodb.net/Cluster0?authSource=%24external&authMechanism=MONGODB-X509`;
 
-const client = new MongoClient(uri, {
+const client = new MongoClient(db, {
     tlsCertificateKeyFile: process.env.CERT,
     authMechanism: "MONGODB-X509",
     authSource: "$external",
@@ -51,10 +74,6 @@ async function connectDatabase(): Promise<void> {
         throw error; // Re-throw the error to be caught later
     }
 }
-
-const app: Application = express();
-app.use(express.json());
-const port = process.env.PORT || 8000;
 
 app.get("/", (req: ExpressRequest, res: ExpressResponse) => {
     res.send("Welcome to Express & TypeScript Server");
