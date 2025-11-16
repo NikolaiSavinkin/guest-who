@@ -9,7 +9,7 @@ const HOST = import.meta.env.VITE_HOST
     ? import.meta.env.VITE_HOST
     : "http://localhost:8000";
 
-function Admin() {
+function Host() {
     const [participants, setParticipants] = useState<string[]>([]);
     const [game, setGame] = useState(null as Game | null);
     const [showName, setShowName] = useState(false);
@@ -155,4 +155,4 @@ function Admin() {
     }
 }
 
-export default Admin;
+export default Host;
