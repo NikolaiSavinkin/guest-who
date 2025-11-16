@@ -28,7 +28,7 @@ function Participant() {
             try {
                 const res = await fetch(HOST + "/questions");
 
-                if (!res.ok || res.status != 304) {
+                if (!res.ok && res.status != 304) {
                     const e = new Error(`HTTP error! status: ${res.status}`);
                     setError(e);
                     throw e;
