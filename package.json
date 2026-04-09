@@ -6,15 +6,15 @@
   "main": "dist/index.js",
   "scripts": {
     "clean": "rimraf back/dist front/dist shared/dist",
-    "build:all": "yarn run build:shared && yarn run build:backend && yarn run build:frontend",
+    "build:all": "yarn run build:shared && yarn run build:back && yarn run build:front",
     "build:shared": "yarn --cwd shared install && yarn --cwd shared run build",
-    "build:backend": "yarn --cwd back install && yarn --cwd back run build",
-    "build:frontend": "yarn --cwd front install && yarn --cwd front run build",
-    "start:backend": "yarn --cwd back run start",
-    "start:frontend": "yarn --cwd front run start",
+    "build:back": "yarn --cwd back install && yarn --cwd back run build",
+    "build:front": "yarn --cwd front install && yarn --cwd front run build",
+    "start:back": "yarn --cwd back run start",
+    "start:front": "yarn --cwd front run start",
     "test:shared": "yarn --cwd shared run test",
-    "test:backend": "yarn --cwd back run test",
-    "test": "yarn run build:shared && yarn run test:shared && yarn run build:backend && yarn run test:backend"
+    "test:back": "yarn --cwd back run test",
+    "test": "yarn run build:shared && yarn run test:shared && yarn run build:back && yarn run test:back"
   },
   "dependencies": {},
   "devDependencies": {
