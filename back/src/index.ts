@@ -15,7 +15,7 @@ import {
     InsertOneResult,
 } from "mongodb";
 import { question_response_submission_schema } from "@shared/schema";
-import { Question, QuestionResponseSubmission, Game } from "@shared/types";
+import { Question, QuestionResponseSubmission, Game, SharedError } from "@shared/types";
 
 dotenv.config();
 
@@ -101,7 +101,13 @@ app.post("/games/new", async (req: ExpressRequest, res: ExpressResponse) => {
             .toArray();
 
         if (players.length < 2) {
-            res.status(202).send("Not enough players to start the game");
+            const error: SharedError = {
+                code: "not_ready",
+                message: "Not enough players to start the game",
+            };
+            res.status(400)
+            .json(error);
+            return;
         }
 
         const it = players[Math.floor(Math.random() * players.length)];

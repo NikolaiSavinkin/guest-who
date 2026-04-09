@@ -1,8 +1,8 @@
 import "./../App.css";
 import { useEffect, useState } from "react";
 import { Ready } from "./Ready";
-import type { Game } from "@shared/types";
-import { game_schema } from "@shared/schema";
+import type { Game, SharedError } from "@shared/types";
+import { error_schema, game_schema } from "@shared/schema";
 import { Gameplay } from "./Gameplay";
 
 const HOST = import.meta.env.VITE_HOST
@@ -46,15 +46,20 @@ function Host() {
     }, []);
 
     const handleGameResponse = async (res: Response) => {
+        const json = await res.json();
+
         if (!res.ok) {
-            const e = new Error(
-                `Submit failed: (${res.status}) ${await res.text()}`
-            );
-            setError(e);
-            throw e;
+            const error: SharedError = error_schema.parse(json);
+            if (error.code === "not_ready") {
+                setError(new Error(error.message));
+                return;
+            }
+
+            // If the error is not a not_ready error, throw the error
+            setError(new Error(error.message));
+            throw error;
         }
 
-        const json = await res.json();
 
         const new_game = game_schema.safeParse(json);
         if (new_game.error) {
