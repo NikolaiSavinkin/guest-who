@@ -1,12 +1,49 @@
 import { describe, expect, it } from "vitest";
 import {
     error_schema,
+    invite_code_schema,
     question_response_schema,
     question_response_submission_schema,
     question_schema,
 } from "./schema";
 
 const validObjectId = "507f1f77bcf86cd799439011";
+
+describe("invite_code_schema", () => {
+    const validInviteCode = "abcdefghijklmnop";
+
+    it("rejects empty string", () => {
+        expect(invite_code_schema.safeParse("").success).toBe(false);
+    });
+
+    it("rejects whitespace-only after trim", () => {
+        expect(invite_code_schema.safeParse("   \t  ").success).toBe(false);
+    });
+
+    it("rejects too short codes with valid charset", () => {
+        expect(invite_code_schema.safeParse("abcdefghijklmno").success).toBe(false);
+    });
+
+    it("rejects disallowed characters", () => {
+        const invalid = [
+            "abcdefghijklmnop!", // punctuation
+            "abcdefghijklm opq", // interior space (not removed by trim)
+            "abcdefghijklmnopé", // non-ascii
+            "abcd\nefghijklmnop", // interior newline (trim does not remove it)
+        ];
+        for (const code of invalid) {
+            expect(invite_code_schema.safeParse(code).success).toBe(false);
+        }
+    });
+
+    it("accepts a representative URL-safe code at minimum length", () => {
+        expect(invite_code_schema.safeParse(validInviteCode).success).toBe(true);
+    });
+
+    it("accepts hyphens and underscores in the code", () => {
+        expect(invite_code_schema.safeParse("abcd-efgh_ijklmnop").success).toBe(true);
+    });
+});
 
 describe("_id ObjectId refinement", () => {
     it("rejects invalid strings", () => {

@@ -5,6 +5,17 @@ const _id_schema = z.string().refine((val) => ObjectId.isValid(val), {
     message: "Invalid MongoDB ObjectID",
 });
 
+/** High-entropy invite codes: URL-safe charset, min length 16, trimmed. */
+export const invite_code_schema = z.string().trim().pipe(
+    z
+        .string()
+        .min(1, { message: "Invite code cannot be empty" })
+        .regex(/^[A-Za-z0-9_-]+$/, {
+            message: "Invite code must be URL-safe (letters, digits, hyphen, underscore)",
+        })
+        .min(16, { message: "Invite code is too short" }),
+);
+
 export const question_schema = z.object({
     _id: _id_schema,
     question: z.string(),
