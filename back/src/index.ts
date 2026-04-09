@@ -17,6 +17,11 @@ import {
 import { question_response_submission_schema } from "@shared/schema";
 import { Question, QuestionResponseSubmission, Game, SharedError } from "@shared/types";
 
+const sharedError = (code: string, message: string): SharedError => ({
+    code,
+    message,
+});
+
 dotenv.config();
 
 const app: Application = express();
@@ -81,18 +86,20 @@ app.get("/", (req: ExpressRequest, res: ExpressResponse) => {
 
 app.post("/games/new", async (req: ExpressRequest, res: ExpressResponse) => {
     if (!responsesCollection) {
-        return res
-            .status(500)
-            .send(
-                "Error: Could not connect to the database or responses collection not initialized."
-            );
+        return res.status(500).json(
+            sharedError(
+                "database_unavailable",
+                "Could not connect to the database or responses collection not initialized."
+            )
+        );
     }
     if (!gamesCollection) {
-        return res
-            .status(500)
-            .send(
-                "Error: Could not connect to the database or games collection not initialized."
-            );
+        return res.status(500).json(
+            sharedError(
+                "database_unavailable",
+                "Could not connect to the database or games collection not initialized."
+            )
+        );
     }
 
     try {
@@ -101,13 +108,12 @@ app.post("/games/new", async (req: ExpressRequest, res: ExpressResponse) => {
             .toArray();
 
         if (players.length < 2) {
-            const error: SharedError = {
-                code: "not_ready",
-                message: "Not enough players to start the game",
-            };
-            res.status(400)
-            .json(error);
-            return;
+            return res.status(400).json(
+                sharedError(
+                    "not_ready",
+                    "Not enough players to start the game"
+                )
+            );
         }
 
         const it = players[Math.floor(Math.random() * players.length)];
@@ -140,24 +146,30 @@ app.post("/games/new", async (req: ExpressRequest, res: ExpressResponse) => {
                     _id: result.insertedId,
                 });
         } catch (error) {
-            console.error("Error inserting response:", error);
-            return res.status(500).json({ error: "Failed to store response" });
+            console.error("Failed to create game", error);
+            return res.status(500).json(
+                sharedError("insert_failed", "Failed to create game")
+            );
         }
     } catch (error) {
         console.error("Error fetching questions from MongoDB:", error);
-        return res
-            .status(500)
-            .send("Error fetching questions from the database");
+        return res.status(500).json(
+            sharedError(
+                "fetch_failed",
+                "Error fetching responses from the database"
+            )
+        );
     }
 });
 
 app.get("/games/:gameId", async (req: ExpressRequest, res: ExpressResponse) => {
     if (!gamesCollection) {
-        return res
-            .status(500)
-            .send(
-                "Error: Could not connect to the database or games collection not initialized."
-            );
+        return res.status(500).json(
+            sharedError(
+                "database_unavailable",
+                "Could not connect to the database or games collection not initialized."
+            )
+        );
     }
     let game_id: ObjectId;
 
@@ -166,27 +178,37 @@ app.get("/games/:gameId", async (req: ExpressRequest, res: ExpressResponse) => {
     } catch (error) {
         console.log(JSON.stringify(req.params));
         console.error(error);
-        return res.status(400).send("Invalid game ID");
+        return res.status(400).json(
+            sharedError("invalid_game_id", "Invalid game ID")
+        );
     }
 
     try {
         const game_doc = await gamesCollection.findOne({ _id: game_id });
 
         if (game_doc === null) {
-            return res.status(404).send("Game not found");
+            return res
+                .status(404)
+                .json(sharedError("game_not_found", "Game not found"));
         }
 
         return res.status(200).json(game_doc);
-    } catch (error) {}
+    } catch (error) {
+        console.error("Error fetching game from MongoDB:", error);
+        return res.status(500).json(
+            sharedError("internal_server_error", "Internal server error")
+        );
+    }
 });
 
 app.get("/questions", async (_req: ExpressRequest, res: ExpressResponse) => {
     if (!questionsCollection) {
-        return res
-            .status(500)
-            .send(
-                "Error: Could not connect to the database or questions collection not initialized."
-            );
+        return res.status(500).json(
+            sharedError(
+                "database_unavailable",
+                "Could not connect to the database or questions collection not initialized."
+            )
+        );
     }
 
     try {
@@ -196,9 +218,12 @@ app.get("/questions", async (_req: ExpressRequest, res: ExpressResponse) => {
         return res.json(questions);
     } catch (error) {
         console.error("Error fetching questions from MongoDB:", error);
-        return res
-            .status(500)
-            .send("Error fetching questions from the database");
+        return res.status(500).json(
+            sharedError(
+                "fetch_failed",
+                "Error fetching questions from the database"
+            )
+        );
     }
 });
 
@@ -206,11 +231,12 @@ app.get(
     "/responses/names",
     async (req: ExpressRequest, res: ExpressResponse) => {
         if (!responsesCollection) {
-            return res
-                .status(500)
-                .send(
-                    "Error: Could not connect to the database or responses collection not initialized."
-                );
+            return res.status(500).json(
+                sharedError(
+                    "database_unavailable",
+                    "Could not connect to the database or responses collection not initialized."
+                )
+            );
         }
 
         try {
@@ -226,9 +252,12 @@ app.get(
             return res.json(names);
         } catch (error) {
             console.error("Error fetching questions from MongoDB:", error);
-            return res
-                .status(500)
-                .send("Error fetching questions from the database");
+            return res.status(500).json(
+                sharedError(
+                    "fetch_failed",
+                    "Error fetching response names from the database"
+                )
+            );
         }
     }
 );
@@ -237,11 +266,12 @@ app.post("/responses", async (req: ExpressRequest, res: ExpressResponse) => {
     //TODO: make idempotent
 
     if (!responsesCollection) {
-        return res
-            .status(500)
-            .send(
-                "Error: Could not connect to the database or responses collection not initialized."
-            );
+        return res.status(500).json(
+            sharedError(
+                "database_unavailable",
+                "Could not connect to the database or responses collection not initialized."
+            )
+        );
     }
 
     const submission = question_response_submission_schema.safeParse(req.body);
@@ -249,7 +279,9 @@ app.post("/responses", async (req: ExpressRequest, res: ExpressResponse) => {
     if (!submission.success) {
         console.log(JSON.stringify(req.body));
         console.error(submission.error);
-        return res.status(400).send("Invalid format");
+        return res.status(400).json(
+            sharedError("validation_error", "Invalid request body")
+        );
     }
 
     const doc: QuestionResponseSubmission = {
@@ -265,7 +297,9 @@ app.post("/responses", async (req: ExpressRequest, res: ExpressResponse) => {
         return res.status(201).send("Response saved successfully");
     } catch (error) {
         console.error("Error inserting response:", error);
-        return res.status(500).json({ error: "Failed to store response" });
+        return res.status(500).json(
+            sharedError("insert_failed", "Failed to store response")
+        );
     }
 });
 
