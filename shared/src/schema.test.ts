@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+    error_schema,
     question_response_schema,
     question_response_submission_schema,
     question_schema,
@@ -78,5 +79,21 @@ describe("question_response_schema", () => {
         const { answer: _a, ...rest } = base;
         const result = question_response_schema.safeParse(rest);
         expect(result.success).toBe(false);
+    });
+});
+
+describe("error_schema", () => {
+    it("rejects non-objects and missing fields", () => {
+        expect(error_schema.safeParse(null).success).toBe(false);
+        expect(error_schema.safeParse({ code: "x" }).success).toBe(false);
+        expect(error_schema.safeParse({ message: "m" }).success).toBe(false);
+    });
+
+    it("accepts minimal valid payload", () => {
+        const result = error_schema.safeParse({
+            code: "ERR",
+            message: "Something went wrong",
+        });
+        expect(result.success).toBe(true);
     });
 });

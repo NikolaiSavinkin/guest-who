@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # Backend tests use createApp() with in-memory collections; no MongoDB service is required.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: yarn
+          cache-dependency-path: |
+            yarn.lock
+            shared/yarn.lock
+            back/yarn.lock
+            front/yarn.lock
+      - name: Install dependencies
+        run: |
+          yarn --cwd shared install --frozen-lockfile
+          yarn --cwd back install --frozen-lockfile
+          yarn --cwd front install --frozen-lockfile
+      - name: Build all packages
+        run: yarn run build
+      - name: Test
+        run: yarn run test
