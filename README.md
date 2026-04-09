@@ -22,6 +22,18 @@ A small website to help my friends and I organise a 'guess who' inspired party.
 |----------|----------|-------------|
 | `VITE_HOST` | No (dev) / **Yes** (typical prod) | Base URL of the API (e.g. `http://localhost:8000`). If unset, the client defaults to `http://localhost:8000`. Set this in production so the browser calls your deployed API, and ensure `CORS_ORIGIN` on the backend allows your front-end origin. |
 
+## Tests
+
+From the repo root, after dependencies are installed (`yarn install` at the root, or the per-package installs you already use for development), run:
+
+```bash
+yarn test
+```
+
+That builds the shared package, runs shared Vitest unit tests (schemas), builds the backend, then runs backend Vitest (route and integration-style tests against `createApp` with **in-memory** collection stubs). **You do not need MongoDB, `DB_URI`, `CERT`, or `CORS_ORIGIN` for this command**—only for running the real API (`yarn --cwd back dev` or `yarn start:back`).
+
+The GitHub Actions workflow (`.github/workflows/ci.yml`) runs `yarn run build` then `yarn run test` on a clean checkout with the same expectations: **no database service** in CI.
+
 # installation
 
 1. Install build tools: NPM, Yarn
