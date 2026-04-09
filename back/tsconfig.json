@@ -1,6 +1,7 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.back.tsbuildinfo",
     "composite": true,
     "target": "ES2020",
     "module": "CommonJS",
