@@ -1,70 +1,11 @@
 // src/index.ts
-import compression from "compression";
-import cors from "cors";
-import express, {
-    Application,
-    Express,
-    Request as ExpressRequest,
-    Response as ExpressResponse,
-} from "express";
-import type { RequestHandler } from "express";
-import helmet from "helmet";
 import dotenv from "dotenv";
-import {
-    MongoClient,
-    ServerApiVersion,
-    Collection,
-    ObjectId,
-    InsertOneResult,
-} from "mongodb";
-import { question_response_submission_schema } from "../../shared/dist/schema";
-import type {
-    Question,
-    QuestionResponseSubmission,
-    Game,
-} from "../../shared/src/types";
-import { sharedError } from "./apiError";
-import { registerHealthRoutes } from "./healthRoutes";
-import { createMutationRateLimiter } from "./mutationRateLimit";
-
-/** Stored `responses` document (API shape plus MongoDB fields). */
-type ResponseDoc = QuestionResponseSubmission & {
-    _id: ObjectId;
-    createdAt?: Date;
-};
+import { MongoClient, ServerApiVersion, type Document } from "mongodb";
+import { createApp, type AppCollections } from "./application";
 
 dotenv.config();
 
-const gameResourceLocation = (req: ExpressRequest, gameId: ObjectId): string => {
-    const host = req.get("host");
-    const path = `/games/${gameId.toHexString()}`;
-    if (!host) {
-        return path;
-    }
-    return `${req.protocol}://${host}${path}`;
-};
-
-const app: Application = express();
 const port = process.env.PORT || 8000;
-
-// Remember to add the following to the .env file:
-const trustProxyEnv = process.env.TRUST_PROXY?.trim();
-if (trustProxyEnv === "0" || trustProxyEnv === "false") {
-    app.set("trust proxy", false);
-} else if (trustProxyEnv === undefined || trustProxyEnv === "") {
-    app.set("trust proxy", process.env.NODE_ENV === "production" ? 1 : false);
-} else {
-    const hops = Number.parseInt(trustProxyEnv, 10);
-    app.set(
-        "trust proxy",
-        Number.isFinite(hops) && hops >= 0 ? hops : 1
-    );
-}
-
-app.use(helmet({ contentSecurityPolicy: false }) as RequestHandler);
-app.use(compression());
-
-const mutationLimiter = createMutationRateLimiter();
 
 if (!process.env.CORS_ORIGIN) {
     throw new Error("CORS must be enabled. Define CORS_ORIGIN in .env file.");
@@ -84,20 +25,24 @@ if (!certPath) {
     );
 }
 
-var corsOptions = {
-    origin: process.env.CORS_ORIGIN === "*" ? true : process.env.CORS_ORIGIN,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-};
+const trustProxyEnv = process.env.TRUST_PROXY?.trim();
+const trustProxy: boolean | number =
+    trustProxyEnv === "0" || trustProxyEnv === "false"
+        ? false
+        : trustProxyEnv === undefined || trustProxyEnv === ""
+          ? process.env.NODE_ENV === "production"
+              ? 1
+              : false
+          : (() => {
+                const hops = Number.parseInt(trustProxyEnv, 10);
+                return Number.isFinite(hops) && hops >= 0 ? hops : 1;
+            })();
+
+const corsOrigin = process.env.CORS_ORIGIN;
 
 console.log(
-    `CORS Origin: ${corsOptions.origin} (${typeof corsOptions.origin})`
+    `CORS Origin: ${corsOrigin} (${typeof (corsOrigin === "*" ? true : corsOrigin)})`
 );
-
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
-
-app.use(express.json());
 
 const client = new MongoClient(dbUri, {
     tlsCertificateKeyFile: certPath,
@@ -110,13 +55,11 @@ const client = new MongoClient(dbUri, {
     },
 });
 
-registerHealthRoutes(app, {
-    pingMongo: () => client.db("admin").command({ ping: 1 }).then(() => undefined),
-});
-
-let questionsCollection: Collection | null = null;
-let responsesCollection: Collection | null = null;
-let gamesCollection: Collection | null = null;
+const collections: AppCollections = {
+    questions: null,
+    responses: null,
+    games: null,
+};
 
 async function connectDatabase(): Promise<void> {
     try {
@@ -124,245 +67,26 @@ async function connectDatabase(): Promise<void> {
         await client.db("admin").command({ ping: 1 });
         console.log("Successfully connected to MongoDB!");
         const db = client.db("guest_who");
-        questionsCollection = db.collection("questions");
-        responsesCollection = db.collection("responses");
-        gamesCollection = db.collection("games");
+        collections.questions = db.collection("questions");
+        collections.responses = db.collection("responses");
+        collections.games = db.collection("games");
     } catch (error) {
         console.error("Error connecting to MongoDB:", error);
-        throw error; // Re-throw the error to be caught later
+        throw error;
     }
 }
-
-app.get("/", (req: ExpressRequest, res: ExpressResponse) => {
-    res.send("Welcome to Express & TypeScript Server");
-});
-
-app.post(
-    "/games/new",
-    mutationLimiter,
-    async (req: ExpressRequest, res: ExpressResponse) => {
-    if (!responsesCollection) {
-        return res.status(500).json(
-            sharedError(
-                "database_unavailable",
-                "Could not connect to the database or responses collection not initialized."
-            )
-        );
-    }
-    if (!gamesCollection) {
-        return res.status(500).json(
-            sharedError(
-                "database_unavailable",
-                "Could not connect to the database or games collection not initialized."
-            )
-        );
-    }
-
-    try {
-        const players = await responsesCollection.find<ResponseDoc>({}).toArray();
-
-        if (players.length < 2) {
-            return res.status(400).json(
-                sharedError(
-                    "not_ready",
-                    "Not enough players to start the game"
-                )
-            );
-        }
-
-        const it = players[Math.floor(Math.random() * players.length)];
-
-        // const new_game: Omit<Game, "_id"> = {
-        // use Pick instead of Omit because Omit sometimes excludes the _id from all the clues
-        const new_game: Pick<
-            Game,
-            "it_id" | "it_name" | "num_clues" | "next_clue" | "clues"
-        > = {
-            it_id: it._id.toHexString(),
-            it_name: it.name,
-            num_clues: it.questions.length,
-            next_clue: 0,
-            clues: it.questions,
-        };
-
-        try {
-            const result = await gamesCollection.insertOne(new_game);
-            if (!result.acknowledged) {
-                throw new Error("Insert not acknowledged.");
-            }
-            return res
-                .status(201)
-                .location(gameResourceLocation(req, result.insertedId))
-                .json({
-                    ...new_game,
-                    _id: result.insertedId,
-                });
-        } catch (error) {
-            console.error("Failed to create game", error);
-            return res.status(500).json(
-                sharedError("insert_failed", "Failed to create game")
-            );
-        }
-    } catch (error) {
-        console.error("Error fetching questions from MongoDB:", error);
-        return res.status(500).json(
-            sharedError(
-                "fetch_failed",
-                "Error fetching responses from the database"
-            )
-        );
-    }
-    }
-);
-
-app.get("/games/:gameId", async (req: ExpressRequest, res: ExpressResponse) => {
-    if (!gamesCollection) {
-        return res.status(500).json(
-            sharedError(
-                "database_unavailable",
-                "Could not connect to the database or games collection not initialized."
-            )
-        );
-    }
-    let game_id: ObjectId;
-
-    try {
-        game_id = new ObjectId(req.params.gameId);
-    } catch (error) {
-        console.log(JSON.stringify(req.params));
-        console.error(error);
-        return res.status(400).json(
-            sharedError("invalid_game_id", "Invalid game ID")
-        );
-    }
-
-    try {
-        const game_doc = await gamesCollection.findOne({ _id: game_id });
-
-        if (game_doc === null) {
-            return res
-                .status(404)
-                .json(sharedError("game_not_found", "Game not found"));
-        }
-
-        return res.status(200).json(game_doc);
-    } catch (error) {
-        console.error("Error fetching game from MongoDB:", error);
-        return res.status(500).json(
-            sharedError("internal_server_error", "Internal server error")
-        );
-    }
-});
-
-app.get("/questions", async (_req: ExpressRequest, res: ExpressResponse) => {
-    if (!questionsCollection) {
-        return res.status(500).json(
-            sharedError(
-                "database_unavailable",
-                "Could not connect to the database or questions collection not initialized."
-            )
-        );
-    }
-
-    try {
-        const questions = await questionsCollection
-            .find<Question>({})
-            .toArray();
-        return res.json(questions);
-    } catch (error) {
-        console.error("Error fetching questions from MongoDB:", error);
-        return res.status(500).json(
-            sharedError(
-                "fetch_failed",
-                "Error fetching questions from the database"
-            )
-        );
-    }
-});
-
-app.get(
-    "/responses/names",
-    async (req: ExpressRequest, res: ExpressResponse) => {
-        if (!responsesCollection) {
-            return res.status(500).json(
-                sharedError(
-                    "database_unavailable",
-                    "Could not connect to the database or responses collection not initialized."
-                )
-            );
-        }
-
-        try {
-            const responseNamesFromDb = await responsesCollection
-                .find<QuestionResponseSubmission>(
-                    {},
-                    { projection: { name: 1, _id: 1 } }
-                )
-                .toArray();
-            const names = responseNamesFromDb.map(
-                (responseNamesFromDb) => responseNamesFromDb.name
-            );
-            return res.json(names);
-        } catch (error) {
-            console.error("Error fetching questions from MongoDB:", error);
-            return res.status(500).json(
-                sharedError(
-                    "fetch_failed",
-                    "Error fetching response names from the database"
-                )
-            );
-        }
-    }
-);
-
-app.post(
-    "/responses",
-    mutationLimiter,
-    async (req: ExpressRequest, res: ExpressResponse) => {
-    //TODO: make idempotent
-
-    if (!responsesCollection) {
-        return res.status(500).json(
-            sharedError(
-                "database_unavailable",
-                "Could not connect to the database or responses collection not initialized."
-            )
-        );
-    }
-
-    const submission = question_response_submission_schema.safeParse(req.body);
-
-    if (!submission.success) {
-        console.log(JSON.stringify(req.body));
-        console.error(submission.error);
-        return res.status(400).json(
-            sharedError("validation_error", "Invalid request body")
-        );
-    }
-
-    const doc: ResponseDoc = {
-        ...submission.data,
-        createdAt: new Date(),
-        _id: new ObjectId(),
-    };
-
-    try {
-        const result: InsertOneResult = await responsesCollection.insertOne(
-            doc
-        );
-        return res.status(201).send("Response saved successfully");
-    } catch (error) {
-        console.error("Error inserting response:", error);
-        return res.status(500).json(
-            sharedError("insert_failed", "Failed to store response")
-        );
-    }
-    }
-);
 
 async function startServer(): Promise<void> {
     try {
         await connectDatabase();
+        const app = createApp(
+            {
+                collections,
+                pingMongo: () =>
+                    client.db("admin").command({ ping: 1 }).then(() => undefined),
+            },
+            { corsOrigin, trustProxy }
+        );
         app.listen(port, () => {
             console.log(`Server is Fire at http://localhost:${port}`);
         });
@@ -370,7 +94,6 @@ async function startServer(): Promise<void> {
         console.error(
             "Failed to start the server due to database connection error."
         );
-        // Handle the error appropriately, maybe exit the process
         process.exit(1);
     }
 }

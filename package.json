@@ -11,7 +11,10 @@
     "build:backend": "yarn --cwd back install && yarn --cwd back run build",
     "build:frontend": "yarn --cwd front install && yarn --cwd front run build",
     "start:backend": "yarn --cwd back run start",
-    "start:frontend": "yarn --cwd front run start"
+    "start:frontend": "yarn --cwd front run start",
+    "test:shared": "yarn --cwd shared run test",
+    "test:backend": "yarn --cwd back run test",
+    "test": "yarn run build:shared && yarn run test:shared && yarn run build:backend && yarn run test:backend"
   },
   "dependencies": {},
   "devDependencies": {
