@@ -7,21 +7,12 @@ import express, {
 } from "express";
 import type { RequestHandler } from "express";
 import helmet from "helmet";
-import { registerGameRoutes } from "./application/gameRoutes";
-import { registerQuestionRoutes } from "./application/questionRoutes";
-import { registerResponseRoutes } from "./application/responseRoutes";
-import type { CreateAppDeps, CreateAppOptions } from "./application/types";
-import { registerHealthRoutes } from "./healthRoutes";
-import { createMutationRateLimiter } from "./mutationRateLimit";
-
-export type {
-    AppCollections,
-    CreateAppDeps,
-    CreateAppOptions,
-    GamesWriteCollection,
-    QuestionsReadCollection,
-    ResponsesWriteCollection,
-} from "./application/types";
+import { registerHealthRoutes } from "../healthRoutes";
+import { createMutationRateLimiter } from "../mutationRateLimit";
+import { registerGameRoutes } from "./gameRoutes";
+import { registerQuestionRoutes } from "./questionRoutes";
+import { registerResponseRoutes } from "./responseRoutes";
+import type { CreateAppDeps, CreateAppOptions } from "./types";
 
 export const createApp = (
     deps: CreateAppDeps,
