@@ -2,6 +2,7 @@ import express from "express";
 import request from "supertest";
 import { error_schema } from "../../shared/src/schema";
 import { describe, expect, it } from "vitest";
+import { registerHealthRoutes } from "./healthRoutes";
 import { createMutationRateLimiter } from "./mutationRateLimit";
 
 describe("createMutationRateLimiter", () => {
@@ -40,6 +41,38 @@ describe("createMutationRateLimiter", () => {
         const health = await request(app).get("/health");
         expect(health.status).toBe(200);
         expect(health.body).toEqual({ status: "ok" });
+    });
+
+    it("429 after N POSTs to mutation routes; health and read GETs stay unlimited", async () => {
+        const app = express();
+        const limiter = createMutationRateLimiter({
+            windowMs: 60_000,
+            max: 2,
+        });
+        registerHealthRoutes(app, {
+            pingMongo: async () => undefined,
+        });
+        app.get("/questions", (_req, res) => res.status(200).json([]));
+        app.post("/games/new", limiter, (_req, res) => res.status(201).send("new"));
+        app.post("/responses", limiter, (_req, res) => res.status(201).send("ok"));
+
+        await request(app).post("/games/new").expect(201);
+        await request(app).post("/responses").expect(201);
+        const limited = await request(app).post("/responses");
+        expect(limited.status).toBe(429);
+        expect(error_schema.safeParse(limited.body).success).toBe(true);
+
+        const health = await request(app).get("/health");
+        expect(health.status).toBe(200);
+        expect(health.body).toEqual({ status: "ok" });
+
+        const ready = await request(app).get("/ready");
+        expect(ready.status).toBe(200);
+        expect(ready.body).toEqual({ status: "ready" });
+
+        const questions = await request(app).get("/questions");
+        expect(questions.status).toBe(200);
+        expect(questions.body).toEqual([]);
     });
 
     it("reads RATE_LIMIT_WINDOW_MS and RATE_LIMIT_MAX from env when overrides omitted", async () => {
