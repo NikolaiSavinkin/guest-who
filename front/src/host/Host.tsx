@@ -101,7 +101,7 @@ function Host() {
                 },
             });
 
-            handleGameResponse(res);
+            await handleGameResponse(res);
         } catch (e) {
             console.error(e);
             setStatus("error");
@@ -117,7 +117,7 @@ function Host() {
                 },
             });
 
-            handleGameResponse(res);
+            await handleGameResponse(res);
         } catch (e) {
             console.error(e);
             setStatus("error");

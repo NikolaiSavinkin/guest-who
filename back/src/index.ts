@@ -24,6 +24,15 @@ const sharedError = (code: string, message: string): SharedError => ({
 
 dotenv.config();
 
+const gameResourceLocation = (req: ExpressRequest, gameId: ObjectId): string => {
+    const host = req.get("host");
+    const path = `/games/${gameId.toHexString()}`;
+    if (!host) {
+        return path;
+    }
+    return `${req.protocol}://${host}${path}`;
+};
+
 const app: Application = express();
 const port = process.env.PORT || 8000;
 
@@ -138,9 +147,7 @@ app.post("/games/new", async (req: ExpressRequest, res: ExpressResponse) => {
             }
             return res
                 .status(201)
-                .location(
-                    `${req.protocol}:${req.hostname}/games/${result.insertedId}`
-                )
+                .location(gameResourceLocation(req, result.insertedId))
                 .json({
                     ...new_game,
                     _id: result.insertedId,
