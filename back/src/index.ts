@@ -22,6 +22,12 @@ const sharedError = (code: string, message: string): SharedError => ({
     message,
 });
 
+/** Stored `responses` document (API shape plus MongoDB fields). */
+type ResponseDoc = QuestionResponseSubmission & {
+    _id: ObjectId;
+    createdAt?: Date;
+};
+
 dotenv.config();
 
 const gameResourceLocation = (req: ExpressRequest, gameId: ObjectId): string => {
@@ -122,9 +128,7 @@ app.post("/games/new", async (req: ExpressRequest, res: ExpressResponse) => {
     }
 
     try {
-        const players = await responsesCollection
-            .find<QuestionResponseSubmission>({})
-            .toArray();
+        const players = await responsesCollection.find<ResponseDoc>({}).toArray();
 
         if (players.length < 2) {
             return res.status(400).json(
@@ -143,7 +147,7 @@ app.post("/games/new", async (req: ExpressRequest, res: ExpressResponse) => {
             Game,
             "it_id" | "it_name" | "num_clues" | "next_clue" | "clues"
         > = {
-            it_id: it._id,
+            it_id: it._id.toHexString(),
             it_name: it.name,
             num_clues: it.questions.length,
             next_clue: 0,
@@ -301,7 +305,7 @@ app.post("/responses", async (req: ExpressRequest, res: ExpressResponse) => {
         );
     }
 
-    const doc: QuestionResponseSubmission = {
+    const doc: ResponseDoc = {
         ...submission.data,
         createdAt: new Date(),
         _id: new ObjectId(),
