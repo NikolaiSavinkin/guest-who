@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 // import viteLogo from "/vite.svg";
 import "./../App.css";
 import type { Question, QuestionResponse } from "@shared/types";
+import { errorMessageFromFailedResponse } from "../api/parseSharedError";
 import { QuestionBlock } from "./Question.tsx";
 import { Name } from "./Name.tsx";
 
@@ -29,7 +30,14 @@ function Participant() {
                 const res = await fetch(HOST + "/questions");
 
                 if (!res.ok && res.status != 304) {
-                    const e = new Error(`HTTP error! status: ${res.status}`);
+                    let message = `Request failed (${res.status})`;
+                    try {
+                        const errJson: unknown = await res.json();
+                        message = errorMessageFromFailedResponse(res, errJson);
+                    } catch {
+                        /* non-JSON error body */
+                    }
+                    const e = new Error(message);
                     setError(e);
                     throw e;
                 }
@@ -63,10 +71,14 @@ function Participant() {
             });
 
             if (!res.ok) {
-                // Throw error for now
-                const e = new Error(
-                    `Submit failed: (${res.status}) ${await res.text()}`
-                );
+                let message = `Request failed (${res.status})`;
+                try {
+                    const errJson: unknown = await res.json();
+                    message = errorMessageFromFailedResponse(res, errJson);
+                } catch {
+                    /* non-JSON error body */
+                }
+                const e = new Error(message);
                 setError(e);
                 throw e;
             }

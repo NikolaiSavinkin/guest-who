@@ -1,8 +1,12 @@
 import "./../App.css";
 import { useEffect, useState } from "react";
 import { Ready } from "./Ready";
-import type { Game, SharedError } from "@shared/types";
-import { error_schema, game_schema } from "@shared/schema";
+import type { Game } from "@shared/types";
+import { game_schema } from "@shared/schema";
+import {
+    errorMessageFromFailedResponse,
+    parseSharedError,
+} from "../api/parseSharedError";
 import { Gameplay } from "./Gameplay";
 
 const HOST = import.meta.env.VITE_HOST
@@ -27,9 +31,17 @@ function Host() {
                 const res = await fetch(HOST + "/responses/names");
 
                 if (!res.ok && res.status != 304) {
-                    const e = new Error(`HTTP error! status: ${res.status}`);
-                    setError(e);
-                    throw e;
+                    let message = `Request failed (${res.status})`;
+                    try {
+                        const errJson: unknown = await res.json();
+                        message = errorMessageFromFailedResponse(res, errJson);
+                    } catch {
+                        /* non-JSON error body */
+                    }
+                    setError(new Error(message));
+                    setParticipants([]);
+                    setStatus("error");
+                    return;
                 }
 
                 const jsonData = await res.json();
@@ -46,18 +58,24 @@ function Host() {
     }, []);
 
     const handleGameResponse = async (res: Response) => {
-        const json = await res.json();
+        let json: unknown;
+        try {
+            json = await res.json();
+        } catch {
+            json = null;
+        }
 
         if (!res.ok) {
-            const error: SharedError = error_schema.parse(json);
-            if (error.code === "not_ready") {
-                setError(new Error(error.message));
+            const message = errorMessageFromFailedResponse(res, json);
+            const shared = parseSharedError(json);
+            if (shared?.code === "not_ready") {
+                setError(new Error(message));
+                setStatus("error");
                 return;
             }
 
-            // If the error is not a not_ready error, throw the error
-            setError(new Error(error.message));
-            throw error;
+            setError(new Error(message));
+            throw new Error(message);
         }
 
 
