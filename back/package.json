@@ -5,16 +5,19 @@
   "license": "MIT",
   "main": "dist/index.js",
   "scripts": {
-    "build": "yarn tsc",
+    "build": "yarn tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
     "dev": "yarn ts-node src/index.ts",
     "test": "vitest run",
     "clean": "rimraf dist"
   },
   "dependencies": {
+    "compression": "^1.8.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^4",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.1.0",
     "mongodb": "^6.15.0"
   },
   "devDependencies": {
