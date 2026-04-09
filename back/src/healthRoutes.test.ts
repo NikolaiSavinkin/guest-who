@@ -1,5 +1,6 @@
 import express from "express";
 import request from "supertest";
+import { error_schema } from "../../shared/src/schema";
 import { describe, expect, it } from "vitest";
 import { registerHealthRoutes } from "./healthRoutes";
 
@@ -33,9 +34,10 @@ describe("registerHealthRoutes", () => {
         });
         const res = await request(app).get("/ready");
         expect(res.status).toBe(503);
+        expect(error_schema.safeParse(res.body).success).toBe(true);
         expect(res.body).toEqual({
-            status: "not_ready",
-            error: "database_unreachable",
+            code: "database_unreachable",
+            message: "Database ping failed",
         });
     });
 });

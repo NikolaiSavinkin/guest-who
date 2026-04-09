@@ -18,8 +18,8 @@ export const registerHealthRoutes = (
             res.status(200).json({ status: "ready" });
         } catch {
             res.status(503).json({
-                status: "not_ready",
-                error: "database_unreachable",
+                code: "database_unreachable",
+                message: "Database ping failed",
             });
         }
     });
