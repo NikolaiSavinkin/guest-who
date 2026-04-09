@@ -26,7 +26,9 @@ A small website to help my friends and I organise a 'guess who' inspired party.
 3. For a production build of the frontend, set `VITE_HOST` to your API URL before `yarn build`.
 4. Backend:
    - In `/back` run `yarn install` for app dependencies
-   - Then run `yarn build && yarn start` to start the backend
+   - Build the shared package first (`yarn --cwd shared build` from the repo root, or use `yarn build:all`) so `shared/dist` exists for imports
+   - Production: `yarn build && yarn start` runs the compiled `dist/index.js` (with `GET /health` and `GET /ready` for probes)
+   - Local development with TypeScript directly: `yarn dev` (still uses `ts-node`)
 5. Frontend:
    - In `/front` run `yarn install` for app dependencies
    - Then run `yarn dev` to start the frontend

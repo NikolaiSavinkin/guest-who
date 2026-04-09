@@ -14,8 +14,14 @@ import {
     ObjectId,
     InsertOneResult,
 } from "mongodb";
-import { question_response_submission_schema } from "@shared/schema";
-import { Question, QuestionResponseSubmission, Game, SharedError } from "@shared/types";
+import { question_response_submission_schema } from "../../shared/dist/schema";
+import type {
+    Question,
+    QuestionResponseSubmission,
+    Game,
+    SharedError,
+} from "../../shared/src/types";
+import { registerHealthRoutes } from "./healthRoutes";
 
 const sharedError = (code: string, message: string): SharedError => ({
     code,
@@ -84,6 +90,10 @@ const client = new MongoClient(dbUri, {
         strict: true,
         deprecationErrors: true,
     },
+});
+
+registerHealthRoutes(app, {
+    pingMongo: () => client.db("admin").command({ ping: 1 }).then(() => undefined),
 });
 
 let questionsCollection: Collection | null = null;
