@@ -40,6 +40,20 @@ if (!process.env.CORS_ORIGIN) {
     throw new Error("CORS must be enabled. Define CORS_ORIGIN in .env file.");
 }
 
+const dbUri = process.env.DB_URI?.trim();
+if (!dbUri) {
+    throw new Error(
+        "DB_URI must be set in the environment (e.g. in back/.env). Provide your MongoDB connection string; there is no default."
+    );
+}
+
+const certPath = process.env.CERT?.trim();
+if (!certPath) {
+    throw new Error(
+        "CERT must be set in the environment (e.g. in back/.env). Provide the filesystem path to your X.509 client certificate/key file used for MongoDB authentication."
+    );
+}
+
 var corsOptions = {
     origin: process.env.CORS_ORIGIN === "*" ? true : process.env.CORS_ORIGIN,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -55,12 +69,8 @@ app.options("*", cors(corsOptions));
 
 app.use(express.json());
 
-const db = process.env.DB_URI
-    ? process.env.DB_URI
-    : `mongodb+srv://cluster0.8dk5hhj.mongodb.net/Cluster0?authSource=%24external&authMechanism=MONGODB-X509`;
-
-const client = new MongoClient(db, {
-    tlsCertificateKeyFile: process.env.CERT,
+const client = new MongoClient(dbUri, {
+    tlsCertificateKeyFile: certPath,
     authMechanism: "MONGODB-X509",
     authSource: "$external",
     serverApi: {
