@@ -17,7 +17,9 @@ exports.question_response_schema = zod_1.z.object({
     answer: zod_1.z.string(),
 });
 exports.question_response_submission_schema = zod_1.z.object({
-    questions: zod_1.z.array(exports.question_response_schema),
+    questions: zod_1.z.array(exports.question_response_schema).min(1, {
+        message: "At least one question response is required",
+    }),
     name: zod_1.z.string(),
 });
 exports.game_schema = zod_1.z.object({

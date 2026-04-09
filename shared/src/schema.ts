@@ -18,7 +18,9 @@ export const question_response_schema = z.object({
 });
 
 export const question_response_submission_schema = z.object({
-    questions: z.array(question_response_schema),
+    questions: z.array(question_response_schema).min(1, {
+        message: "At least one question response is required",
+    }),
     name: z.string(),
 });
 
