@@ -12,6 +12,9 @@ A small website to help my friends and I organise a 'guess who' inspired party.
 | `CERT` | **Yes** | Filesystem path to the X.509 client certificate/key file used for TLS client authentication to MongoDB. |
 | `CORS_ORIGIN` | **Yes** | Allowed browser origin for the API (e.g. `http://localhost:5173` in dev, or your deployed front-end URL). Use `*` only if you accept the security tradeoff. |
 | `PORT` | No | HTTP port for the API. Defaults to `8000` if unset. |
+| `TRUST_PROXY` | No | How Express treats `X-Forwarded-*` when the API sits behind a reverse proxy (nginx, Fly, Railway, load balancers, etc.). Affects `req.ip` and **per-IP rate limiting** for mutation routes. `0` or `false` disables trust. A positive integer is the number of proxy hops to trust (e.g. `1` for a single ingress). If unset: `1` when `NODE_ENV=production`, otherwise trust is off (typical for local dev without a proxy). |
+| `RATE_LIMIT_WINDOW_MS` | No | Time window in milliseconds for **mutation** rate limits (`POST /games/new`, `POST /responses` only). Defaults to `900000` (15 minutes). Invalid or empty values fall back to the default. |
+| `RATE_LIMIT_MAX` | No | Maximum mutation requests allowed per client IP per window. Defaults to `100`. Increase if many real clients share one public IP (e.g. same Wi‑Fi). Invalid or empty values fall back to the default. |
 
 ### Frontend (`front/.env` / build-time)
 
@@ -22,7 +25,7 @@ A small website to help my friends and I organise a 'guess who' inspired party.
 # installation
 
 1. Install build tools: NPM, Yarn
-2. Copy or create `back/.env` with `DB_URI`, `CERT`, and `CORS_ORIGIN` (see table above). Optionally set `PORT`.
+2. Copy or create `back/.env` with `DB_URI`, `CERT`, and `CORS_ORIGIN` (see table above). Optionally set `PORT`, `TRUST_PROXY` (if behind a proxy), and `RATE_LIMIT_*` to tune mutation rate limits.
 3. For a production build of the frontend, set `VITE_HOST` to your API URL before `yarn build`.
 4. Backend:
    - In `/back` run `yarn install` for app dependencies

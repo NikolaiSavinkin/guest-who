@@ -1,11 +1,14 @@
 // src/index.ts
+import compression from "compression";
 import cors from "cors";
 import express, {
+    Application,
     Express,
     Request as ExpressRequest,
     Response as ExpressResponse,
-    Application,
 } from "express";
+import type { RequestHandler } from "express";
+import helmet from "helmet";
 import dotenv from "dotenv";
 import {
     MongoClient,
@@ -22,6 +25,7 @@ import type {
 } from "../../shared/src/types";
 import { sharedError } from "./apiError";
 import { registerHealthRoutes } from "./healthRoutes";
+import { createMutationRateLimiter } from "./mutationRateLimit";
 
 /** Stored `responses` document (API shape plus MongoDB fields). */
 type ResponseDoc = QuestionResponseSubmission & {
@@ -42,6 +46,25 @@ const gameResourceLocation = (req: ExpressRequest, gameId: ObjectId): string => 
 
 const app: Application = express();
 const port = process.env.PORT || 8000;
+
+// Remember to add the following to the .env file:
+const trustProxyEnv = process.env.TRUST_PROXY?.trim();
+if (trustProxyEnv === "0" || trustProxyEnv === "false") {
+    app.set("trust proxy", false);
+} else if (trustProxyEnv === undefined || trustProxyEnv === "") {
+    app.set("trust proxy", process.env.NODE_ENV === "production" ? 1 : false);
+} else {
+    const hops = Number.parseInt(trustProxyEnv, 10);
+    app.set(
+        "trust proxy",
+        Number.isFinite(hops) && hops >= 0 ? hops : 1
+    );
+}
+
+app.use(helmet({ contentSecurityPolicy: false }) as RequestHandler);
+app.use(compression());
+
+const mutationLimiter = createMutationRateLimiter();
 
 if (!process.env.CORS_ORIGIN) {
     throw new Error("CORS must be enabled. Define CORS_ORIGIN in .env file.");
@@ -114,7 +137,10 @@ app.get("/", (req: ExpressRequest, res: ExpressResponse) => {
     res.send("Welcome to Express & TypeScript Server");
 });
 
-app.post("/games/new", async (req: ExpressRequest, res: ExpressResponse) => {
+app.post(
+    "/games/new",
+    mutationLimiter,
+    async (req: ExpressRequest, res: ExpressResponse) => {
     if (!responsesCollection) {
         return res.status(500).json(
             sharedError(
@@ -186,7 +212,8 @@ app.post("/games/new", async (req: ExpressRequest, res: ExpressResponse) => {
             )
         );
     }
-});
+    }
+);
 
 app.get("/games/:gameId", async (req: ExpressRequest, res: ExpressResponse) => {
     if (!gamesCollection) {
@@ -288,7 +315,10 @@ app.get(
     }
 );
 
-app.post("/responses", async (req: ExpressRequest, res: ExpressResponse) => {
+app.post(
+    "/responses",
+    mutationLimiter,
+    async (req: ExpressRequest, res: ExpressResponse) => {
     //TODO: make idempotent
 
     if (!responsesCollection) {
@@ -327,7 +357,8 @@ app.post("/responses", async (req: ExpressRequest, res: ExpressResponse) => {
             sharedError("insert_failed", "Failed to store response")
         );
     }
-});
+    }
+);
 
 async function startServer(): Promise<void> {
     try {
