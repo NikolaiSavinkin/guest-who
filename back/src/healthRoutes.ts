@@ -1,4 +1,5 @@
 import { Application, Request, Response } from "express";
+import { sharedError } from "./apiError";
 
 export type HealthDeps = {
     pingMongo: () => Promise<void>;
@@ -17,10 +18,9 @@ export const registerHealthRoutes = (
             await deps.pingMongo();
             res.status(200).json({ status: "ready" });
         } catch {
-            res.status(503).json({
-                code: "database_unreachable",
-                message: "Database ping failed",
-            });
+            res.status(503).json(
+                sharedError("database_unreachable", "Database ping failed")
+            );
         }
     });
 };

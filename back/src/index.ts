@@ -19,14 +19,9 @@ import type {
     Question,
     QuestionResponseSubmission,
     Game,
-    SharedError,
 } from "../../shared/src/types";
+import { sharedError } from "./apiError";
 import { registerHealthRoutes } from "./healthRoutes";
-
-const sharedError = (code: string, message: string): SharedError => ({
-    code,
-    message,
-});
 
 /** Stored `responses` document (API shape plus MongoDB fields). */
 type ResponseDoc = QuestionResponseSubmission & {
