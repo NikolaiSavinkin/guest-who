@@ -7,61 +7,27 @@ import express, {
 } from "express";
 import type { RequestHandler } from "express";
 import helmet from "helmet";
-import type { Document, InsertOneResult } from "mongodb";
 import { ObjectId } from "mongodb";
 import { question_response_submission_schema } from "../../shared/dist/schema";
-import type {
-    Game,
-    Question,
-    QuestionResponseSubmission,
-} from "../../shared/src/types";
+import type { Game, QuestionResponseSubmission } from "../../shared/src/types";
 import { sharedError } from "./apiError";
 import { registerHealthRoutes } from "./healthRoutes";
-import {
-    createMutationRateLimiter,
-    type CreateMutationRateLimiterOptions,
-} from "./mutationRateLimit";
+import { createMutationRateLimiter } from "./mutationRateLimit";
+import type { CreateAppDeps, CreateAppOptions } from "./application/types";
+
+export type {
+    AppCollections,
+    CreateAppDeps,
+    CreateAppOptions,
+    GamesWriteCollection,
+    QuestionsReadCollection,
+    ResponsesWriteCollection,
+} from "./application/types";
 
 /** Stored `responses` document (API shape plus MongoDB fields). */
 type ResponseDoc = QuestionResponseSubmission & {
     _id: ObjectId;
     createdAt?: Date;
-};
-
-/** Minimal collection surface used by routes; real `Collection` and test fakes both satisfy this. */
-export type QuestionsReadCollection = {
-    find(filter?: Document): { toArray(): Promise<Question[]> };
-};
-
-export type ResponsesWriteCollection = {
-    find<T>(
-        filter?: Document,
-        options?: { projection?: Document }
-    ): { toArray(): Promise<T[]> };
-    insertOne(doc: Document): Promise<InsertOneResult>;
-};
-
-export type GamesWriteCollection = {
-    insertOne(doc: Document): Promise<InsertOneResult>;
-    findOne(filter: { _id: ObjectId }): Promise<Document | null>;
-};
-
-export type AppCollections = {
-    questions: QuestionsReadCollection | null;
-    responses: ResponsesWriteCollection | null;
-    games: GamesWriteCollection | null;
-};
-
-export type CreateAppDeps = {
-    collections: AppCollections;
-    pingMongo: () => Promise<void>;
-};
-
-export type CreateAppOptions = {
-    corsOrigin: string;
-    trustProxy?: boolean | number;
-    mutationLimiter?: RequestHandler;
-    mutationRateLimit?: CreateMutationRateLimiterOptions;
 };
 
 const gameResourceLocation = (
