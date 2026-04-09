@@ -13,6 +13,11 @@ lerna-debug.log*
 # JS
 **/node_modules/**
 **/dist/**
+
+# Stray `tsc` output next to shared sources (e.g. `tsc src/schema.ts` without `-p` / outDir).
+# If present, Vite resolves @shared/schema to schema.js and the CJS bundle breaks named exports.
+/shared/src/schema.js
+/shared/src/schema.d.ts
 **/dist-ssr/**
 **/*.local
 
