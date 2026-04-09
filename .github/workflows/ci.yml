@@ -30,9 +30,7 @@ jobs:
             front/yarn.lock
       - name: Install dependencies
         run: |
-          yarn --cwd shared install --frozen-lockfile
-          yarn --cwd back install --frozen-lockfile
-          yarn --cwd front install --frozen-lockfile
+          yarn run install:ci
       - name: Build all packages
         run: yarn run build
       - name: Test
