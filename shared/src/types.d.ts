@@ -2,6 +2,7 @@ import {
     question_schema,
     question_response_schema,
     game_schema,
+    error_schema,
 } from "./schema.js";
 import zod from "zod";
 import { ObjectId } from "bson";
@@ -17,3 +18,5 @@ export type QuestionResponseSubmission = zod.infer<
 >;
 
 export type Game = zod.infer<typeof game_schema>;
+
+export type SharedError = zod.infer<typeof error_schema>;

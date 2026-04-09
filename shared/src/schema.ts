@@ -30,3 +30,8 @@ export const game_schema = z.object({
     next_clue: z.number(),
     clues: z.array(question_response_schema),
 });
+
+export const error_schema = z.object({
+    code: z.string(),
+    message: z.string(),
+});
